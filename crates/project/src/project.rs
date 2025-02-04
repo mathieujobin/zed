@@ -1933,21 +1933,7 @@ impl Project {
         }
 
         self.buffer_store.update(cx, |buffer_store, cx| {
-            buffer_store.open_buffer(path.into(), false, cx)
-        })
-    }
-
-    pub fn open_buffer_without_contents(
-        &mut self,
-        path: impl Into<ProjectPath>,
-        cx: &mut Context<Self>,
-    ) -> Task<Result<Entity<Buffer>>> {
-        if self.is_disconnected(cx) {
-            return Task::ready(Err(anyhow!(ErrorCode::Disconnected)));
-        }
-
-        self.buffer_store.update(cx, |buffer_store, cx| {
-            buffer_store.open_buffer(path.into(), true, cx)
+            buffer_store.open_buffer(path.into(), cx)
         })
     }
 
@@ -3951,25 +3937,14 @@ impl Project {
     ) -> Result<proto::OpenBufferResponse> {
         let peer_id = envelope.original_sender_id()?;
         let worktree_id = WorktreeId::from_proto(envelope.payload.worktree_id);
-        let skip_file_contents = envelope.payload.skip_file_contents;
         let open_buffer = this.update(&mut cx, |this, cx| {
-            if skip_file_contents {
-                this.open_buffer_without_contents(
-                    ProjectPath {
-                        worktree_id,
-                        path: PathBuf::from(envelope.payload.path).into(),
-                    },
-                    cx,
-                )
-            } else {
-                this.open_buffer(
-                    ProjectPath {
-                        worktree_id,
-                        path: PathBuf::from(envelope.payload.path).into(),
-                    },
-                    cx,
-                )
-            }
+            this.open_buffer(
+                ProjectPath {
+                    worktree_id,
+                    path: PathBuf::from(envelope.payload.path).into(),
+                },
+                cx,
+            )
         })?;
 
         let buffer = open_buffer.await?;
@@ -4095,7 +4070,6 @@ impl Project {
                             worktree_id: worktree.read(cx).id(),
                             path: Arc::from(relative_path),
                         },
-                        true,
                         cx,
                     )
                 })

@@ -196,7 +196,6 @@ fn commit_message_buffer(
                                     worktree_id: worktree.read(cx).id(),
                                     path: Arc::from(relative_path),
                                 },
-                                true,
                                 cx,
                             )
                         })
@@ -295,6 +294,10 @@ impl GitPanel {
             .detach();
 
             let commit_editor = cx.new(|cx| commit_message_editor(None, window, cx));
+            commit_editor.update(cx, |editor, cx| {
+                editor.clear(window, cx);
+            });
+
             let scroll_handle = UniformListScrollHandle::new();
 
             cx.subscribe_in(
